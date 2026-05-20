@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BugTrackingSystem Diagrams</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; background: #f9f9f9; padding: 30px; }
+  h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+  h2 { color: #34495e; margin-top: 40px; border-left: 4px solid #3498db; padding-left: 12px; }
+  .diagram-box {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 24px;
+    margin: 20px 0;
+    overflow-x: auto;
+  }
+  .mermaid { display: flex; justify-content: center; }
+</style>
+</head>
+<body>
+<h1>BugTrackingSystem — Class Diagrams &amp; Flowcharts</h1>
+
+<h2>1. Class Diagram — Models Layer</h2>
+<div class="diagram-box">
+<div class="mermaid">
+classDiagram
+    direction TB
+    class BaseEntity {
+        &lt;&lt;abstract&gt;&gt;
+        +int Id
+        +int CreatedBy
+        +DateTime CreatedAt
+        +int? UpdatedBy
+        +DateTime? UpdatedAt
+        +bool IsDeleted
+        +int? DeletedBy
+        +DateTime? DeletedAt
+    }
+    class Role {
+        +string Name
+        +ICollection~User~ Users
+    }
+    class User {
+        +string FullName
+        +string Email
+        +string PasswordHash
+        +int RoleId
+        +bool MustChangePassword
+        +DateTime? LastLoginAt
+    }
+    class Project {
+        +string Name
+        +string Description
+        +DateTime? StartDate
+        +DateTime? EndDate
+        +string Status
+    }
+    class Bug {
+        +string Title
+        +string Description
+        +string Priority
+        +string Severity
+        +string Status
+        +int ProjectId
+        +int? AssignedTo
+        +DateTime? ResolvedAt
+    }
+    class BugComment {
+        +int BugId
+        +int UserId
+        +string CommentText
+    }
+    class BugStatusHistory {
+        +int BugId
+        +string OldStatus
+        +string NewStatus
+        +int ChangedBy
+        +DateTime ChangedAt
+    }
+    class Notification {
+        +int UserId
+        +int BugId
+        +string Message
+        +bool IsRead
+    }
+    class Attachment {
+        +int BugId
+        +string FileName
+        +string FilePath
+        +int UploadedBy
+        +DateTime UploadedAt
+    }
+    BaseEntity <|-- User
+    BaseEntity <|-- Role
+    BaseEntity <|-- Project
+    BaseEntity <|-- Bug
+    BaseEntity <|-- BugComment
+    BaseEntity <|-- Notification
+    BaseEntity <|-- Attachment
+    User "N" --> "1" Role
+    Bug "N" --> "1" Project
+    Bug "N" --> "1" User : AssignedTo
+    BugComment "N" --> "1" Bug
+    BugStatusHistory "N" --> "1" Bug
+    Notification "N" --> "1" User
+    Notification "N" --> "1" Bug
+    Attachment "N" --> "1" Bug
+</div>
+</div>
+
+<h2>2. Class Diagram — Architecture Layer</h2>
+<div class="diagram-box">
+<div class="mermaid">
+classDiagram
+    direction LR
+    class AuthController {
+        -IAuthService _authService
+        +Login(LoginRequest)
+        +ChangePassword(ChangePasswordRequest)
+    }
+    class UsersController {
+        -IUsersService _usersService
+        +GetUsers()
+        +CreateUser()
+        +UpdateUserRole()
+        +UpdateUserStatus()
+    }
+    class ProjectsController {
+        -IProjectsService _projectsService
+        +GetProjects()
+        +CreateProject()
+        +UpdateProject()
+        +DeleteProject()
+    }
+    class BugsController {
+        -IBugsService _bugsService
+        +GetBugs()
+        +CreateBug()
+        +UpdateBugStatus()
+        +RetestBug()
+    }
+    class AttachmentsController {
+        -IAttachmentsService _attachmentsService
+        +Upload()
+        +GetByBug()
+        +Download()
+        +Delete()
+    }
+    class NotificationsController {
+        -INotificationsService _notificationsService
+        +GetUserNotifications()
+        +MarkAsRead()
+    }
+    class DashboardController {
+        -IDashboardService _dashboardService
+        +GetSummary()
+    }
+    class RolesController {
+        -IRolesService _rolesService
+        +GetRoles()
+    }
+    class IAuthService { &lt;&lt;interface&gt;&gt; }
+    class IUsersService { &lt;&lt;interface&gt;&gt; }
+    class IProjectsService { &lt;&lt;interface&gt;&gt; }
+    class IBugsService { &lt;&lt;interface&gt;&gt; }
+    class IAttachmentsService { &lt;&lt;interface&gt;&gt; }
+    class INotificationsService { &lt;&lt;interface&gt;&gt; }
+    class IDashboardService { &lt;&lt;interface&gt;&gt; }
+    class IRolesService { &lt;&lt;interface&gt;&gt; }
+    class ServiceResult {
+        +bool Success
+        +string Message
+        +object Data
+        +ServiceStatus Status
+        +Ok(data, message)$
+        +Fail(message, status)$
+    }
+    class BugTrackingDbContext {
+        +DbSet~Role~ Roles
+        +DbSet~User~ Users
+        +DbSet~Project~ Projects
+        +DbSet~Bug~ Bugs
+        +DbSet~BugComment~ BugComments
+        +DbSet~Notification~ Notifications
+        +DbSet~Attachment~ Attachments
+    }
+    AuthController ..> IAuthService
+    UsersController ..> IUsersService
+    ProjectsController ..> IProjectsService
+    BugsController ..> IBugsService
+    AttachmentsController ..> IAttachmentsService
+    NotificationsController ..> INotificationsService
+    DashboardController ..> IDashboardService
+    RolesController ..> IRolesService
+    IAuthService ..> ServiceResult
+    IUsersService ..> ServiceResult
+    IProjectsService ..> ServiceResult
+    IBugsService ..> ServiceResult
+    IAttachmentsService ..> ServiceResult
+    INotificationsService ..> ServiceResult
+    IDashboardService ..> ServiceResult
+    IRolesService ..> ServiceResult
+</div>
+</div>
+
+<h2>3. Flowchart — Request Lifecycle (DI Flow)</h2>
+<div class="diagram-box">
+<div class="mermaid">
+flowchart TD
+    A([HTTP Request]) --> B[IIS Express]
+    B --> C[WebApiConfig\nMapHttpAttributeRoutes]
+    C --> D[JwtAuthorizeAttribute\nValidate Token]
+    D -->|Token Invalid| E([401 Unauthorized])
+    D -->|Token Valid| F[AuthorizeRoleAttribute\nCheck Role]
+    F -->|Role Not Allowed| G([403 Forbidden])
+    F -->|Role Allowed| H[Controller\nConstructor Injection via Unity]
+    H --> I[Service Method\nBusiness Logic]
+    I --> J[BugTrackingDbContext\nEF6 Query]
+    J --> K[(SQL Server Database)]
+    K --> J
+    J --> I
+    I --> L{ServiceResult\nSuccess?}
+    L -->|false| M[Return 400 / 404 / 403]
+    L -->|true| N[Return 200 OK + Data]
+    M --> O([HTTP Response])
+    N --> O
+</div>
+</div>
+
+<h2>4. Flowchart — Login Flow</h2>
+<div class="diagram-box">
+<div class="mermaid">
+flowchart TD
+    A([POST /api/auth/login]) --> B[AuthController.Login]
+    B --> C{ModelState Valid?}
+    C -->|No| D([400 Bad Request])
+    C -->|Yes| E[AuthService.Login]
+    E --> F[Query Users WHERE\nEmail + Password + NOT Deleted]
+    F --> G{User Found?}
+    G -->|No| H([200 - Success false\nInvalid email or password])
+    G -->|Yes| I[Update LastLoginAt\nSaveChanges]
+    I --> J{MustChangePassword?}
+    J -->|Yes| K([200 - MustChangePassword true\nNo Token])
+    J -->|No| L[JwtService.GenerateToken]
+    L --> M([200 - Token + UserInfo])
+</div>
+</div>
+
+<h2>5. Flowchart — Create Bug Flow</h2>
+<div class="diagram-box">
+<div class="mermaid">
+flowchart TD
+    A([POST /api/bugs]) --> B[JwtAuthorize]
+    B --> C[AuthorizeRole\nSystemAdmin / TestingManager / Tester]
+    C --> D[BugsController.CreateBug]
+    D --> E{ModelState Valid?}
+    E -->|No| F([400 Bad Request])
+    E -->|Yes| G[BugsService.CreateBug]
+    G --> H{Project Exists\nAND Not Deleted?}
+    H -->|No| I([400 Project does not exist])
+    H -->|Yes| J{Assigned User is\nActive Developer?}
+    J -->|No| K([400 Must be active Developer])
+    J -->|Yes| L[Insert Bug]
+    L --> M[Insert Notification\nfor Developer]
+    M --> N[Insert BugStatusHistory\nNone to New]
+    N --> O[SaveChanges]
+    O --> P([200 - BugId + Success Message])
+</div>
+</div>
+
+<h2>6. Flowchart — Update Bug Status Flow</h2>
+<div class="diagram-box">
+<div class="mermaid">
+flowchart TD
+    A([PUT /api/bugs/id/status]) --> B[JwtAuthorize]
+    B --> C[AuthorizeRole\nSystemAdmin / DevelopmentManager / Developer]
+    C --> D[BugsService.UpdateBugStatus]
+    D --> E{Bug Found?}
+    E -->|No| F([404 Not Found])
+    E -->|Yes| G{Role == Developer\nAND Bug.AssignedTo != CurrentUser?}
+    G -->|Yes| H([403 Forbidden\nOnly your bugs])
+    G -->|No| I[Update Bug Status\nUpdatedBy + UpdatedAt]
+    I --> J{NewStatus == Resolved?}
+    J -->|Yes| K[Set ResolvedAt = Now]
+    J -->|No| L[Skip]
+    K --> M[Insert BugStatusHistory]
+    L --> M
+    M --> N[Insert Notification\nto Bug Creator]
+    N --> O[SaveChanges]
+    O --> P([200 - OldStatus + NewStatus])
+</div>
+</div>
+
+<h2>7. Flowchart — Retest Bug Flow</h2>
+<div class="diagram-box">
+<div class="mermaid">
+flowchart TD
+    A([PUT /api/bugs/id/retest]) --> B[JwtAuthorize]
+    B --> C[AuthorizeRole\nSystemAdmin / TestingManager / Tester]
+    C --> D[BugsService.RetestBug]
+    D --> E{Bug Found?}
+    E -->|No| F([404 Not Found])
+    E -->|Yes| G{Bug.Status == Resolved?}
+    G -->|No| H([400 Only resolved bugs can be retested])
+    G -->|Yes| I{IsFixed?}
+    I -->|Yes| J[Status to Closed]
+    I -->|No| K[Status to Reopened]
+    J --> L[Insert BugStatusHistory]
+    K --> L
+    L --> M{TesterComment Provided?}
+    M -->|Yes| N[Insert BugComment]
+    M -->|No| O[Skip]
+    N --> P{IsFixed?}
+    O --> P
+    P -->|No| Q[Insert Notification\nto Developer]
+    P -->|Yes| R[Skip Notification]
+    Q --> S[SaveChanges]
+    R --> S
+    S --> T([200 - Bug Closed / Reopened])
+</div>
+</div>
+
+<h2>8. Flowchart — Upload Attachment Flow</h2>
+<div class="diagram-box">
+<div class="mermaid">
+flowchart TD
+    A([POST /api/bugs/bugId/attachments]) --> B[JwtAuthorize]
+    B --> C{Content-Type\nmultipart/form-data?}
+    C -->|No| D([400 Bad Request])
+    C -->|Yes| E[Map ~/Uploads/Attachments\nCreate if not exists]
+    E --> F[ReadAsMultipartAsync\nSave temp files]
+    F --> G{Files Uploaded?}
+    G -->|No| H([400 No file was uploaded])
+    G -->|Yes| I[Build UploadFileInfo list]
+    I --> J[AttachmentsService.Upload]
+    J --> K{Bug Exists\nAND Not Deleted?}
+    K -->|No| L([404 Not Found])
+    K -->|Yes| M[Generate Guid filename\nMove temp to final path\nInsert Attachment record]
+    M --> N[SaveChanges]
+    N --> O([200 - File uploaded successfully])
+</div>
+</div>
+
+<h2>9. Flowchart — Soft Delete Flow</h2>
+<div class="diagram-box">
+<div class="mermaid">
+flowchart TD
+    A([DELETE /api/resource/id]) --> B[JwtAuthorize + AuthorizeRole]
+    B --> C[Service.Delete]
+    C --> D{Record Exists\nAND IsDeleted == false?}
+    D -->|No| E([404 Not Found])
+    D -->|Yes| F[Set IsDeleted = true\nDeletedBy = currentUserId\nDeletedAt = DateTime.Now]
+    F --> G[SaveChanges]
+    G --> H([200 - Deleted successfully])
+    H --> I[Record still in DB\nbut hidden from all queries]
+</div>
+</div>
+
+<h2>10. Flowchart — Unity DI Registration Flow</h2>
+<div class="diagram-box">
+<div class="mermaid">
+flowchart LR
+    A[Application_Start] --> B[UnityConfig.RegisterComponents]
+    B --> C[UnityContainer]
+    C --> D[Register DbContext\nHierarchicalLifetimeManager]
+    C --> E[IAuthService to AuthService]
+    C --> F[IUsersService to UsersService]
+    C --> G[IProjectsService to ProjectsService]
+    C --> H[IBugsService to BugsService]
+    C --> I[IDashboardService to DashboardService]
+    C --> J[INotificationsService to NotificationsService]
+    C --> K[IAttachmentsService to AttachmentsService]
+    C --> L[IRolesService to RolesService]
+    C --> M[GlobalConfiguration.DependencyResolver\n= UnityDependencyResolver]
+    M --> N{HTTP Request arrives}
+    N --> O[Unity creates child scope per request]
+    O --> P[Inject DbContext into Service]
+    O --> Q[Inject IXxxService into Controller]
+    Q --> R[Controller handles request]
+    R --> S[Request ends\nUnity disposes DbContext]
+</div>
+</div>
+
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'loose' });
+</script>
+</body>
+</html>

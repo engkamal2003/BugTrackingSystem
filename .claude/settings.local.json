@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build *)",
+      "Bash(msbuild BugTrackingSystem.csproj /p:Configuration=Debug /t:Build /v:minimal)",
+      "PowerShell(\\(Get-Content \"C:\\\\Users\\\\Waleed Safwat\\\\source\\\\repos\\\\BugTrackingSystem-Frontend-HTML\\\\css\\\\style.css\"\\).Count)"
+    ]
+  }
+}
