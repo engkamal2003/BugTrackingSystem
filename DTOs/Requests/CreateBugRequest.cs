@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace BugTrackingSystem.DTOs.Requests
@@ -24,6 +25,6 @@ namespace BugTrackingSystem.DTOs.Requests
         public int ProjectId { get; set; }
 
         [Required]
-        public int AssignedTo { get; set; }
+        public List<int> AssignedTo { get; set; }
     }
 }

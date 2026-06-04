@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace BugTrackingSystem.DTOs.Responses
 {
@@ -12,8 +13,7 @@ namespace BugTrackingSystem.DTOs.Responses
         public string Status { get; set; }
         public int ProjectId { get; set; }
         public string ProjectName { get; set; }
-        public int? AssignedTo { get; set; }
-        public string AssignedToName { get; set; }
+        public List<string> AssignedToNames { get; set; }
         public DateTime CreatedAt { get; set; }
         public string CreatedByName { get; set; }
         public DateTime? UpdatedAt { get; set; }

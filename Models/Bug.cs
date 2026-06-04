@@ -28,8 +28,6 @@ namespace BugTrackingSystem.Models
 
         public int ProjectId { get; set; }
 
-        public int? AssignedTo { get; set; }
-
         public DateTime? ResolvedAt { get; set; }
 
         public virtual Project Project { get; set; }
@@ -40,8 +38,6 @@ namespace BugTrackingSystem.Models
 
         public virtual User DeletedByUser { get; set; }
 
-        public virtual User AssignedToUser { get; set; }
-
         public virtual ICollection<BugComment> Comments { get; set; }
 
         public virtual ICollection<Notification> Notifications { get; set; }
@@ -49,5 +45,7 @@ namespace BugTrackingSystem.Models
         public virtual ICollection<BugStatusHistory> StatusHistory { get; set; }
 
         public virtual ICollection<Attachment> Attachments { get; set; }
+
+        public virtual ICollection<BugAssignee> Assignees { get; set; }
     }
 }

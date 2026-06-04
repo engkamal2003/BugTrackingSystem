@@ -251,6 +251,7 @@
     <Compile Include="Models\Attachment.cs" />
     <Compile Include="Models\BaseEntity.cs" />
     <Compile Include="Models\Bug.cs" />
+    <Compile Include="Models\BugAssignee.cs" />
     <Compile Include="Models\BugComment.cs" />
     <Compile Include="Models\BugStatusHistory.cs" />
     <Compile Include="Models\Notification.cs" />

@@ -4,6 +4,7 @@ using BugTrackingSystem.DTOs.Responses;
 using BugTrackingSystem.Interfaces;
 using BugTrackingSystem.Models;
 using System;
+using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
 
@@ -18,10 +19,24 @@ namespace BugTrackingSystem.Services
             _context = context;
         }
 
-        public ServiceResult GetBugs()
+        public ServiceResult GetBugs(int currentUserId, string currentUserRole)
         {
-            var bugs = _context.Bugs
+            var query = _context.Bugs
                 .Where(b => !b.IsDeleted)
+                .Include(b => b.Assignees);
+
+            // Isolation: Developers يرون فقط أخطاءهم المسندة إليهم
+            if (currentUserRole == "Developer")
+            {
+                var assignedBugIds = _context.BugAssignees
+                    .Where(ba => ba.UserId == currentUserId)
+                    .Select(ba => ba.BugId)
+                    .ToList();
+
+                query = query.Where(b => assignedBugIds.Contains(b.Id));
+            }
+
+            var bugs = query
                 .Select(b => new BugDto
                 {
                     Id = b.Id,
@@ -32,8 +47,7 @@ namespace BugTrackingSystem.Services
                     Status = b.Status,
                     ProjectId = b.ProjectId,
                     ProjectName = b.Project.Name,
-                    AssignedTo = b.AssignedTo,
-                    AssignedToName = b.AssignedToUser != null ? b.AssignedToUser.FullName : null,
+                    AssignedToNames = b.Assignees.Select(a => a.User.FullName).ToList(),
                     CreatedAt = b.CreatedAt,
                     CreatedByName = b.CreatedByUser.FullName,
                     UpdatedAt = b.UpdatedAt,
@@ -49,12 +63,17 @@ namespace BugTrackingSystem.Services
             if (!_context.Projects.Any(p => p.Id == request.ProjectId && !p.IsDeleted))
                 return ServiceResult.Fail("Project does not exist.");
 
-            var developer = _context.Users
-                .Include(u => u.Role)
-                .FirstOrDefault(u => u.Id == request.AssignedTo && !u.IsDeleted && u.Role.Name == "Developer");
+            if (request.AssignedTo == null || request.AssignedTo.Count == 0)
+                return ServiceResult.Fail("Please assign the bug to at least one developer.");
 
-            if (developer == null)
-                return ServiceResult.Fail("Assigned user must be an active Developer.");
+            // تحقق من أن جميع المستخدمين developers نشطاء
+            var developers = _context.Users
+                .Include(u => u.Role)
+                .Where(u => request.AssignedTo.Contains(u.Id) && !u.IsDeleted && u.Role.Name == "Developer")
+                .ToList();
+
+            if (developers.Count != request.AssignedTo.Count)
+                return ServiceResult.Fail("All assigned users must be active developers.");
 
             var bug = new Bug
             {
@@ -64,7 +83,6 @@ namespace BugTrackingSystem.Services
                 Severity = request.Severity,
                 Status = "New",
                 ProjectId = request.ProjectId,
-                AssignedTo = request.AssignedTo,
                 CreatedBy = currentUserId,
                 CreatedAt = DateTime.Now
             };
@@ -72,15 +90,28 @@ namespace BugTrackingSystem.Services
             _context.Bugs.Add(bug);
             _context.SaveChanges();
 
-            _context.Notifications.Add(new Notification
+            // أضف مساندة متعددة
+            foreach (var developerId in request.AssignedTo)
             {
-                UserId = request.AssignedTo,
-                BugId = bug.Id,
-                Message = "You have been assigned a new bug.",
-                IsRead = false,
-                CreatedBy = currentUserId,
-                CreatedAt = DateTime.Now
-            });
+                _context.BugAssignees.Add(new BugAssignee
+                {
+                    BugId = bug.Id,
+                    UserId = developerId,
+                    CreatedBy = currentUserId,
+                    CreatedAt = DateTime.Now
+                });
+
+                // أرسل إشعار لكل developer
+                _context.Notifications.Add(new Notification
+                {
+                    UserId = developerId,
+                    BugId = bug.Id,
+                    Message = "You have been assigned a new bug.",
+                    IsRead = false,
+                    CreatedBy = currentUserId,
+                    CreatedAt = DateTime.Now
+                });
+            }
 
             _context.BugStatusHistories.Add(new BugStatusHistory
             {
@@ -93,17 +124,23 @@ namespace BugTrackingSystem.Services
 
             _context.SaveChanges();
 
-            return ServiceResult.Ok(new { BugId = bug.Id }, "Bug created successfully.");
+            return ServiceResult.Ok(new { BugId = bug.Id }, "Bug created and assigned successfully.");
         }
 
         public ServiceResult UpdateBugStatus(int id, UpdateBugStatusRequest request, int currentUserId, string currentUserRole)
         {
-            var bug = _context.Bugs.FirstOrDefault(b => b.Id == id && !b.IsDeleted);
+            var bug = _context.Bugs
+                .Include(b => b.Assignees)
+                .FirstOrDefault(b => b.Id == id && !b.IsDeleted);
             if (bug == null)
                 return ServiceResult.Fail("Bug not found.", ServiceStatus.NotFound);
 
-            if (currentUserRole == "Developer" && bug.AssignedTo != currentUserId)
-                return ServiceResult.Fail("You can only update bugs assigned to you.", ServiceStatus.Forbidden);
+            if (currentUserRole == "Developer")
+            {
+                var isAssigned = bug.Assignees.Any(a => a.UserId == currentUserId);
+                if (!isAssigned)
+                    return ServiceResult.Fail("You can only update bugs assigned to you.", ServiceStatus.Forbidden);
+            }
 
             var oldStatus = bug.Status;
 
@@ -140,7 +177,9 @@ namespace BugTrackingSystem.Services
 
         public ServiceResult RetestBug(int id, RetestBugRequest request, int currentUserId)
         {
-            var bug = _context.Bugs.FirstOrDefault(b => b.Id == id && !b.IsDeleted);
+            var bug = _context.Bugs
+                .Include(b => b.Assignees)
+                .FirstOrDefault(b => b.Id == id && !b.IsDeleted);
             if (bug == null)
                 return ServiceResult.Fail("Bug not found.", ServiceStatus.NotFound);
 
@@ -175,24 +214,27 @@ namespace BugTrackingSystem.Services
                 });
             }
 
-            if (!request.IsFixed && bug.AssignedTo.HasValue)
+            if (!request.IsFixed && bug.Assignees.Count > 0)
             {
-                _context.Notifications.Add(new Notification
+                foreach (var assignee in bug.Assignees)
                 {
-                    UserId = bug.AssignedTo.Value,
-                    BugId = bug.Id,
-                    Message = "Bug has been reopened by tester. Please check it again.",
-                    IsRead = false,
-                    CreatedBy = currentUserId,
-                    CreatedAt = DateTime.Now
-                });
+                    _context.Notifications.Add(new Notification
+                    {
+                        UserId = assignee.UserId,
+                        BugId = bug.Id,
+                        Message = "Bug has been reopened by tester. Please check it again.",
+                        IsRead = false,
+                        CreatedBy = currentUserId,
+                        CreatedAt = DateTime.Now
+                    });
+                }
             }
 
             _context.SaveChanges();
 
             return ServiceResult.Ok(
                 new { BugId = bug.Id, OldStatus = oldStatus, NewStatus = newStatus },
-                request.IsFixed ? "Bug closed successfully after retest." : "Bug reopened and developer notified successfully."
+                request.IsFixed ? "Bug closed successfully after retest." : "Bug reopened and developers notified successfully."
             );
         }
     }

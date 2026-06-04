@@ -13,6 +13,7 @@ namespace BugTrackingSystem.Data
         public DbSet<User> Users { get; set; }
         public DbSet<Project> Projects { get; set; }
         public DbSet<Bug> Bugs { get; set; }
+        public DbSet<BugAssignee> BugAssignees { get; set; }
         public DbSet<BugComment> BugComments { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<BugStatusHistory> BugStatusHistories { get; set; }
@@ -220,6 +221,20 @@ namespace BugTrackingSystem.Data
                 .HasRequired(rp => rp.Permission)
                 .WithMany()
                 .HasForeignKey(rp => rp.PermissionId)
+                .WillCascadeOnDelete(false);
+
+            // BugAssignee → Bug
+            modelBuilder.Entity<BugAssignee>()
+                .HasRequired(ba => ba.Bug)
+                .WithMany(b => b.Assignees)
+                .HasForeignKey(ba => ba.BugId)
+                .WillCascadeOnDelete(true);
+
+            // BugAssignee → User (Assignee)
+            modelBuilder.Entity<BugAssignee>()
+                .HasRequired(ba => ba.User)
+                .WithMany()
+                .HasForeignKey(ba => ba.UserId)
                 .WillCascadeOnDelete(false);
         }
     }

@@ -23,7 +23,9 @@ namespace BugTrackingSystem.Controllers
         [Route("")]
         public IHttpActionResult GetBugs()
         {
-            var result = _bugsService.GetBugs();
+            var currentUserId = JwtHelper.GetCurrentUserId(this);
+            var currentUserRole = JwtHelper.GetCurrentUserRole(this);
+            var result = _bugsService.GetBugs(currentUserId, currentUserRole);
             return Ok(result.Data);
         }
 
