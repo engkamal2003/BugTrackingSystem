@@ -42,8 +42,6 @@ namespace BugTrackingSystem.Models
 
         public virtual ICollection<Bug> DeletedBugs { get; set; }
 
-        public virtual ICollection<Bug> AssignedBugs { get; set; }
-
         // Comments
         public virtual ICollection<BugComment> Comments { get; set; }
 

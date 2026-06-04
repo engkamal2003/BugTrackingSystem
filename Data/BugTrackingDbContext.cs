@@ -74,13 +74,6 @@ namespace BugTrackingSystem.Data
                 .HasForeignKey(b => b.UpdatedBy)
                 .WillCascadeOnDelete(false);
 
-            // Bug → AssignedToUser
-            modelBuilder.Entity<Bug>()
-                .HasOptional(b => b.AssignedToUser)
-                .WithMany(u => u.AssignedBugs)
-                .HasForeignKey(b => b.AssignedTo)
-                .WillCascadeOnDelete(false);
-
             // Bug → DeletedByUser
             modelBuilder.Entity<Bug>()
                 .HasOptional(b => b.DeletedByUser)

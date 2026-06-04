@@ -247,6 +247,10 @@
     <Compile Include="Migrations\202605191234141_AddPermissionsAndRolePermissions.Designer.cs">
       <DependentUpon>202605191234141_AddPermissionsAndRolePermissions.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202606041446306_AddBugAssigneeTable.cs" />
+    <Compile Include="Migrations\202606041446306_AddBugAssigneeTable.Designer.cs">
+      <DependentUpon>202606041446306_AddBugAssigneeTable.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\Attachment.cs" />
     <Compile Include="Models\BaseEntity.cs" />
@@ -292,6 +296,9 @@
   <ItemGroup>
     <EmbeddedResource Include="Migrations\202605191234141_AddPermissionsAndRolePermissions.resx">
       <DependentUpon>202605191234141_AddPermissionsAndRolePermissions.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202606041446306_AddBugAssigneeTable.resx">
+      <DependentUpon>202606041446306_AddBugAssigneeTable.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>
